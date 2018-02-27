@@ -43,7 +43,28 @@
         });
         $("#bth-bet").mouseup(function () {
             this.blur()
-        })
+        });
+
+        const eventSource = new EventSource('http://localhost:8080/api/sse');
+        eventSource.onmessage = e => {
+            $("#messages").append("<p>" + e.data + "</p>");
+            console.log(e.data);
+        };
+
+        eventSource.onopen = e => console.log('open');
+        eventSource.onerror = e => {
+            if (e.readyState === EventSource.CLOSED) {
+                console.log('close');
+            }
+            else {
+                console.log(e);
+            }
+        };
+
+        eventSource.addEventListener('second', function (e) {
+            console.log('second', e.data);
+        }, false);
+
     });
 </script>
 

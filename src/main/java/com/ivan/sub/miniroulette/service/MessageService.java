@@ -11,4 +11,6 @@ public interface MessageService {
 
   void sendMessage(String sessionId, String msg);
 
+  void sendMessage(String sessionId, String msg, Integer balance);
+
 }

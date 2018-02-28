@@ -21,13 +21,23 @@
 <div class="container" style="min-height: 500px">
 
     <div class="starter-template">
-        <h1>Welcome to the game!</h1>
+        <h2>Welcome to the game!</h2>
+
+        <br/>
 
         <div class="col-sm-10">
             <button id="bth-bet" class="btn btn-primary btn-lg">Bet</button>
-
         </div>
 
+        <br/>
+        <br/>
+
+        <h3>Your balance</h3>
+        <div class="h4" id="balance"></div>
+
+        <br/>
+
+        <h3>History</h3>
         <div id="messages"></div>
 
     </div>
@@ -38,20 +48,21 @@
 
 <script>
     $(document).ready(function () {
-        $("#bth-bet").click(function () {
-            $.get("/api/bet");
-        });
-        $("#bth-bet").mouseup(function () {
-            this.blur()
-        });
+        $("#bth-bet")
+            .click(function () {
+                $.get("/api/bet");
+            })
+            .mouseup(function () {
+                this.blur()
+            });
 
         const eventSource = new EventSource('http://localhost:8080/api/sse');
         eventSource.onmessage = e => {
-            $("#messages").append("<p>" + e.data + "</p>");
+            $("#messages").prepend("<p>" + e.data + "</p>");
             console.log(e.data);
         };
 
-        eventSource.onopen = e => console.log('open');
+        eventSource.onopen = () => console.log('open');
         eventSource.onerror = e => {
             if (e.readyState === EventSource.CLOSED) {
                 console.log('close');
@@ -61,8 +72,15 @@
             }
         };
 
-        eventSource.addEventListener('second', function (e) {
-            console.log('second', e.data);
+        eventSource.addEventListener('balanceChanged', function (e) {
+            console.log('balanceChanged', e.data);
+            const resp = JSON.parse(e.data);
+            if (resp.balance) {
+                $("#balance").html(resp.balance);
+            }
+            if (resp.message) {
+                $("#messages").prepend("<p>" + resp.message + "</p>");
+            }
         }, false);
 
     });

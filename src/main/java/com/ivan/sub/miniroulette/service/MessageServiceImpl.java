@@ -1,5 +1,7 @@
 package com.ivan.sub.miniroulette.service;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -9,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter.SseEventBuilder;
+
+import com.ivan.sub.miniroulette.model.Round;
+import com.ivan.sub.miniroulette.model.Session;
 
 /**
  * Created on 2/27/18.
@@ -27,7 +32,7 @@ public class MessageServiceImpl implements MessageService {
     SseEmitter emitter = emittersBySessionId.get(sessionId);
     if (emitter == null) {
       logger.debug("Adding emitter for session with id = {}", sessionId);
-      emitter = new SseEmitter();
+      emitter = new SseEmitter(180_000L);
       emitter.onCompletion(() -> {
         logger.debug("Emitter completed. Removing emitter from map for session with id = {}", sessionId);
         this.emittersBySessionId.remove(sessionId);
@@ -67,6 +72,30 @@ public class MessageServiceImpl implements MessageService {
     } catch (IOException e) {
       logger.error("Error during sending msg by emitter of session with id = {}", sessionId);
     }
+  }
+
+  @Override
+  public void sendMessage(Session session, String msg) {
+    logger.debug("Sending message [ {} ] for session {}", msg, session.getSessionId());
+    try {
+      SseEmitter emitter = emittersBySessionId.get(session.getSessionId());
+      if (emitter != null) {
+        SseEventBuilder builder = SseEmitter.event()
+            .data(new BalanceChangedResponse(msg, session.getBalance()))
+            .name(BALANCE_CHANGED_EVENT_NAME);
+        emitter.send(builder);
+      }
+    } catch (IOException e) {
+      logger.error("Error during sending msg by emitter of session with id = {}", session.getSessionId());
+    }
+  }
+
+  @Override
+  public void sendRoundResult(Round round) {
+    String msg = round.getResult() == 1
+        ? format("You won in round %d. Your balance is increased by 2 units.", round.getNumber())
+        : format("You lost in round %d.", round.getNumber());
+    round.getBids().forEach(bid -> sendMessage(bid.getSession(), msg));
   }
 
   private class BalanceChangedResponse {

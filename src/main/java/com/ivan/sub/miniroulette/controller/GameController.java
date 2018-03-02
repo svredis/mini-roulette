@@ -45,10 +45,9 @@ public class GameController {
   @GetMapping("/api/bet")
   public void doBet(HttpServletResponse response, HttpSession session) {
     response.setHeader("Cache-Control", "no-store");
-
     logger.debug("Session with id = {} is trying to do a bet.", session.getId());
 
-    dealerService.takeBet(session.getId());
+    dealerService.takeBid(session.getId());
 
     messageService.sendMessage(session.getId(), "Your bid is accepted. Your balance has been reduced by one unit.",
         sessionService.getSession(session.getId()).getBalance());
@@ -68,4 +67,5 @@ public class GameController {
 
     return emitter;
   }
+
 }

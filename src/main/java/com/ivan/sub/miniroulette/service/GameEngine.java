@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * Scheduled job that start playing round in the game each defined period.
+ * Scheduled job that start spin roulette each defined period.
  */
 @Service
 public class GameEngine {

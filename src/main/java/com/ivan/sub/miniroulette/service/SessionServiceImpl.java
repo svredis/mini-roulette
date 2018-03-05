@@ -13,7 +13,7 @@ import com.ivan.sub.miniroulette.model.entity.Session;
 import com.ivan.sub.miniroulette.repository.SessionRepo;
 
 /**
- * Created on 2/28/18.
+ * Implementation of {@link SessionService}.
  */
 @Service
 public class SessionServiceImpl implements SessionService {

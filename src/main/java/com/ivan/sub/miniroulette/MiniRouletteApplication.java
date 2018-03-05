@@ -40,10 +40,10 @@ public class MiniRouletteApplication {
   @Qualifier("messageEventExecutor")
   public Executor asyncExecutor(Environment env) {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setCorePoolSize(Integer.valueOf(env.getProperty("executor.core.pool.size")));
-    executor.setMaxPoolSize(Integer.valueOf(env.getProperty("executor.max.pool.size")));
-    executor.setQueueCapacity(Integer.valueOf(env.getProperty("executor.queue.capacity")));
-    executor.setThreadNamePrefix("message-listener-");
+    executor.setCorePoolSize(Integer.valueOf(env.getProperty("message.event.executor.core.pool.size")));
+    executor.setMaxPoolSize(Integer.valueOf(env.getProperty("message.event.executor.max.pool.size")));
+    executor.setQueueCapacity(Integer.valueOf(env.getProperty("message.event.executor.queue.capacity")));
+    executor.setThreadNamePrefix("message-event-");
     executor.initialize();
     return executor;
   }

@@ -13,7 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter.SseEvent
 import com.ivan.sub.miniroulette.model.entity.Session;
 
 /**
- * Created on 2/27/18.
+ * Implementation of {@link EmitterService}.
  */
 @Service
 public class EmitterServiceImpl implements EmitterService {

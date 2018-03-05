@@ -37,12 +37,26 @@ public class GameController {
     return "home";
   }
 
+  /**
+   * Take a bid for next round from given session.
+   *
+   * @param response is {@link HttpServletResponse} object to manage response configuration.
+   * @param session is {@link HttpSession} object to manage session configuration.
+   */
   @GetMapping("/api/bid")
-  public void doBid(HttpServletResponse response, HttpSession session) {
+  public void takeBid(HttpServletResponse response, HttpSession session) {
     response.setHeader("Cache-Control", "no-store");
     dealerService.takeBid(session.getId());
   }
 
+  /**
+   * Get SseEmitter for given session and create new session entity if session wasn't initialized.
+   *
+   * @param response is {@link HttpServletResponse} object to manage response configuration.
+   * @param httpSession is {@link HttpSession} object to manage session configuration.
+   *
+   * @return SseEmitter that is associated with given http session.
+   */
   @GetMapping("/api/sse")
   public SseEmitter getSseEmitter(HttpServletResponse response, HttpSession httpSession) {
     response.setHeader("Cache-Control", "no-store");

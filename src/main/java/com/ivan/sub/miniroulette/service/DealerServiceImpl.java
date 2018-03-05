@@ -27,6 +27,10 @@ public class DealerServiceImpl implements DealerService {
 
   private static final Logger logger = LoggerFactory.getLogger(DealerServiceImpl.class);
 
+  @Value("${round.won.increment}")
+  private int wonIncrement;
+  @Value("${round.lost.increment}")
+  private int lostIncrement;
   @Value("${message.round.won}")
   private String wonMessage;
   @Value("${message.round.lost}")
@@ -60,14 +64,15 @@ public class DealerServiceImpl implements DealerService {
     List<String> playersIds = sessionRepo.findByIsInGameIsTrue();
 
     if (playersIds.size() > 0) {
-      Byte result = (byte) random.nextInt(2);
-      Round newRound = roundRepo.save(new Round(result));
-      sessionRepo.updateWithRoundResult(playersIds, result == 1 ? 2 : 0);
+      Round newRound = roundRepo.save(new Round((byte) random.nextInt(2)));
+      sessionRepo.updateWithRoundResult(playersIds, newRound.getResult() == 1 ? wonIncrement : lostIncrement);
 
       List<Session> players = sessionRepo.findByIdIn(playersIds);
-      eventPublisher.publishEvent(new BalanceChangedEvent(players, result == 1 ? format(wonMessage, result) : format(lostMessage, result)));
+      eventPublisher.publishEvent(
+          new BalanceChangedEvent(players, newRound.getResult() == 1 ? format(wonMessage, newRound.getResult()) : format(lostMessage, newRound.getResult()))
+      );
 
-      logger.debug("End spin for round {} with result = {}. Players size = {}.", newRound.getNumber(), result, players.size());
+      logger.debug("End spin for round {} with result = {}. Players size = {}.", newRound.getNumber(), newRound.getResult(), players.size());
     }
 
     logger.debug("End spin. There are no registered players.");

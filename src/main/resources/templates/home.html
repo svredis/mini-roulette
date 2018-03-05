@@ -31,6 +31,7 @@
 
         <br/>
         <br/>
+        <br/>
 
         <h3>Your balance</h3>
         <div class="h4" id="balance"></div>
@@ -50,7 +51,7 @@
     $(document).ready(function () {
         $("#bth-bet")
             .click(function () {
-                $.get("/api/bet");
+                $.get("/api/bid");
             })
             .mouseup(function () {
                 this.blur()

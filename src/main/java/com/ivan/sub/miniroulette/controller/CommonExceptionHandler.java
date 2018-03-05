@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 /**
- * Created on 2/28/18.
+ * Common exceptions interceptor to handle all exceptions.
  */
 @ControllerAdvice
 public class CommonExceptionHandler {

@@ -1,102 +1,99 @@
 package com.ivan.sub.miniroulette.service;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.TRUE;
+import static java.lang.String.format;
 
+import java.util.List;
 import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ivan.sub.miniroulette.model.Bid;
-import com.ivan.sub.miniroulette.model.Round;
-import com.ivan.sub.miniroulette.model.Session;
-import com.ivan.sub.miniroulette.repository.BidRepo;
+import com.ivan.sub.miniroulette.model.BalanceChangedEvent;
+import com.ivan.sub.miniroulette.model.entity.Round;
+import com.ivan.sub.miniroulette.model.entity.Session;
 import com.ivan.sub.miniroulette.repository.RoundRepo;
 import com.ivan.sub.miniroulette.repository.SessionRepo;
 
 /**
- * Created on 2/28/18.
+ * Implementation of {@link DealerService}.
  */
 @Service
 public class DealerServiceImpl implements DealerService {
 
   private static final Logger logger = LoggerFactory.getLogger(DealerServiceImpl.class);
 
+  @Value("${message.round.won}")
+  private String wonMessage;
+  @Value("${message.round.lost}")
+  private String lostMessage;
+  @Value("${message.bid.was.accepted}")
+  private String bidWasAcceptedMessage;
+
+  private ApplicationEventPublisher eventPublisher;
+
   private SessionRepo sessionRepo;
 
   private RoundRepo roundRepo;
 
-  private BidRepo bidRepo;
-
   private Random random = new Random();
 
   @Autowired
-  public DealerServiceImpl(SessionRepo sessionRepo, RoundRepo roundRepo, BidRepo bidRepo) {
+  public DealerServiceImpl(ApplicationEventPublisher eventPublisher, SessionRepo sessionRepo, RoundRepo roundRepo) {
+    this.eventPublisher = eventPublisher;
     this.sessionRepo = sessionRepo;
     this.roundRepo = roundRepo;
-    this.bidRepo = bidRepo;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  @Transactional(isolation = Isolation.SERIALIZABLE)
-  public Session takeBid(String sessionId) {
-    Session session = sessionRepo.findBySessionId(sessionId);
+  @Transactional
+  public void spin() {
+    logger.debug("Start spin.");
+
+    List<String> playersIds = sessionRepo.findByIsInGameIsTrue();
+
+    if (playersIds.size() > 0) {
+      Byte result = (byte) random.nextInt(2);
+      Round newRound = roundRepo.save(new Round(result));
+      sessionRepo.updateWithRoundResult(playersIds, result == 1 ? 2 : 0);
+
+      List<Session> players = sessionRepo.findByIdIn(playersIds);
+      eventPublisher.publishEvent(new BalanceChangedEvent(players, result == 1 ? format(wonMessage, result) : format(lostMessage, result)));
+
+      logger.debug("End spin for round {} with result = {}. Players size = {}.", newRound.getNumber(), result, players.size());
+    }
+
+    logger.debug("End spin. There are no registered players.");
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  @Transactional
+  public void takeBid(String sessionId) {
+    logger.debug("Start taking a bid from session {}.", sessionId);
+
+    int updateResult = sessionRepo.updateToBeInGame(sessionId);
+
+    Session session = sessionRepo.findOne(sessionId);
+
     if (session == null) {
       throw new IllegalStateException("Session wasn't initialized.");
     }
-    if (session.getBalance() < 1) {
-      throw new IllegalStateException("You don't have enough units to do a bet.");
+
+    if (updateResult == 1) {
+      eventPublisher.publishEvent(new BalanceChangedEvent(session, bidWasAcceptedMessage));
     }
 
-    session.setBalance(session.getBalance() - 1);
-    session = sessionRepo.save(session);
-
-    createNewBid(session);
-
-    return session;
+    logger.debug("Finished taking a bid from session {}.", sessionId);
   }
 
-  @Override
-  @Transactional(isolation = Isolation.SERIALIZABLE)
-  public Round spin(boolean createNewRound) {
-    Byte result = (byte) random.nextInt(2);
-    Round playedRound = roundRepo.findByResultIsNullFetchBids();
-    playedRound.setResult(result);
-    playedRound.getBids().forEach(bid -> {
-      bid.setPlayed(TRUE);
-      bid.getSession().setBalance(bid.getSession().getBalance() + (result == 1 ? 2 : 0));
-    });
-    roundRepo.save(playedRound);
-    if (createNewRound) {
-      prepareNewRound();
-    }
-    return playedRound;
-  }
-
-
-  @Override
-  public void prepareNewRound() {
-    roundRepo.save(new Round(roundRepo.getMaxRoundNumber() + 1));
-  }
-
-
-  private void createNewBid(Session session) {
-    Round notPlayedRound = roundRepo.findByResultIsNull();
-
-    if (bidRepo.countBidBySessionIdIsAndRoundIdIs(session.getId(), notPlayedRound.getId()) > 0) {
-      throw new IllegalStateException("The bid already accepted.");
-    }
-
-    Bid bid = new Bid();
-    bid.setSession(session);
-    bid.setPlayed(FALSE);
-    bid.setRound(notPlayedRound);
-    bidRepo.save(bid);
-
-  }
 }
